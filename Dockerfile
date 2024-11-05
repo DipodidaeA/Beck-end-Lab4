@@ -13,4 +13,4 @@ RUN python -m pip install -r requirements.txt
 COPY . /app
 
 
-CMD flask --app __init__ run -h 127.0.0.1 -p 5001
+CMD flask --app __init__ run -h 0.0.0.0 -p 5001
