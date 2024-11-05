@@ -1,0 +1,11 @@
+services:
+  my_app:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: lab1:v-1
+    environment:
+      PORT: "8080"
+    ports:
+      - "8080:8080"
