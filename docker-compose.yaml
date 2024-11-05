@@ -6,6 +6,6 @@ services:
       dockerfile: Dockerfile
     image: lab1:v-1
     environment:
-      PORT: "8080"
+      PORT: "5001"
     ports:
-      - "8080:8080"
+      - "5001:5001"

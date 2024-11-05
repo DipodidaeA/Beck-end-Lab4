@@ -39,6 +39,14 @@ categorys = {}
 record_id = 1
 records = {}
 
+@app.route("/", methods=["GET"])
+def healthcheck():
+    response = {
+        "status": "200",
+        "date": datetime.now().isoformat()
+    }
+    return jsonify(response), 200
+
 # User request
 @app.route("/user/<int:Id>", methods=["GET"])
 def get_user(Id):
