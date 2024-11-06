@@ -6,6 +6,20 @@ services:
       dockerfile: Dockerfile
     image: lab2:v-1
     environment:
-      PORT: "5001"
+      PORT: "5002"
+      POSTGRES_USER: "user"
+      POSTGRES_PASSWORD: "12345"
+      POSTGRES_DB: "Lab3"
+      POSTGRES_HOST: "db"
     ports:
-      - "5001:5001"
+      - "5002:5002"
+    depends_on:
+      - db
+  db:
+    image: postgres:15.4-alpine3.18
+    environment:
+      POSTGRES_USER: "user"
+      POSTGRES_PASSWORD: "12345"
+      POSTGRES_DB: "Lab3"
+    volumes:
+      - db_data:/var/lib/postgresql/data

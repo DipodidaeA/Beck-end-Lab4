@@ -1,7 +1,10 @@
 from flask import jsonify
 from datetime import datetime
 import random
-from . import app
+
+from marshmallow import ValidationError
+from . import app, entities
+from . import db, UserModel, CategotyModel, RecordModel
 
 class User:
     def __init__(self, Id: int, Name: str):
@@ -20,24 +23,27 @@ class Category:
         return {"Id": self.Id, "Name": self.Name}
 
 class Record:
-    def __init__(self, Id: int, user_id: int, category_id: int, time: str, pay: int):
+    def __init__(self, Id: int, User_id: int, Category_id: int, Time: str, Pay: int):
         self.Id = Id
-        self.user_id = user_id
-        self.category_id = category_id
-        self.time = time
-        self.pay = pay
+        self.User_id = User_id
+        self.Category_id = Category_id
+        self.Time = Time
+        self.Pay = Pay
 
     def to_dict(self):
-        return {"Id": self.Id, "User_id": self.user_id, "Category_id": self.category_id, "Time": self.time, "Pay": self.pay}
+        return {"Id": self.Id, "User_id": self.User_id, "Category_id": self.Category_id, "Time": self.Time, "Pay": self.Pay}
+
+names = {"Alan", "Bob", "Rufus", "Blayd"}
+names_category = {"food", "car", "ticket", "water"}
 
 user_id = 1
-users = {}
+user_schema = entities.PlainUserSchema()
 
 category_id = 1
-categorys = {}
+category_schema = entities.PlainCategorySchema()
 
 record_id = 1
-records = {}
+record_schema = entities.PlainRecordSchema()
 
 @app.route("/", methods=["GET"])
 def healthcheck():
@@ -50,109 +56,176 @@ def healthcheck():
 # User request
 @app.route("/user/<int:Id>", methods=["GET"])
 def get_user(Id):
-    if users.get(Id-1) is None:
-        return "<p>User not found</p>", 404 
-    return jsonify(users.get(Id-1)), 200
+    try:
+        user = UserModel.query.get(Id-1)
+        if user is None:
+            return "<p>User not found</p>", 404 
+        return jsonify(user), 200
+    except Exception as err:
+        db.session.rollback()
+        return f"<p>{err}</p>", 422
 
 @app.route("/user", methods=["POST"])
 def create_user():
-    global user_id
-    new_user  = User(user_id, "Name")
-    users[user_id-1] = new_user.to_dict()
-    user_id += 1
-    return "<p>User create</p>", 200
+    try:
+        global user_id
+        global names
+        new_user = User(user_id, random.choice(list(names))).to_dict()
+        new_user = user_schema.load(new_user)
+        new_user = UserModel(new_user)
+        db.session.add(new_user)
+        db.session.commit()
+        user_id += 1
+        return "<p>User create</p>", 200
+    except ValidationError as err:
+        return f"<p>{err}]</p>", 422
+    except Exception as err:
+        db.session.rollback()
+        return f"<p>{err}</p>", 422
 
 @app.route("/user/<int:Id>", methods=["DELETE"])
 def delete_user(Id):
-    if users.get(Id-1) is None:
-        return "<p>User not found</p>", 404
-    del users[Id-1]
-    return "<p>User delete</p>", 200
+    try:
+        user = UserModel.query.get(Id-1)
+        if user is None:
+            return "<p>User not found</p>", 404
+        db.session.delete(user)
+        db.session.commit()
+        return "<p>User delete</p>", 200
+    except Exception as err:
+        db.session.rollback()
+        return f"<p>{err}</p>", 422
 
 @app.route("/users", methods=["GET"])
 def show_user():
-    return jsonify(users), 200
+    try:
+        users = UserModel.query.all()
+        return jsonify([user.to_dict() for user in users]), 200
+    except Exception as err:
+        db.session.rollback()
+        return f"<p>{err}</p>", 422
 
 # Category request
 @app.route("/category", methods=["GET"])
 def get_category():
-    return jsonify(categorys), 200
+    try:
+        categorys = CategotyModel.query.all()
+        return jsonify([category.to_dict() for category in categorys]), 200
+    except Exception as err:
+        db.session.rollback()
+        return f"<p>{err}</p>", 422
 
 @app.route("/category", methods=["POST"])
 def create_category():
-    global category_id
-    new_category = Category(category_id, "Name")
-    categorys[category_id-1] = new_category.to_dict()
-    category_id += 1
-    return "<p>Category create</p>", 200
+    try:
+        global category_id
+        global names_category
+        new_category = Category(category_id, random.choice(list(names_category))).to_dict()
+        new_category = category_schema.load(new_category)
+        new_category = CategotyModel(new_category)
+        db.session.add(new_category)
+        db.session.commit()
+        category_id += 1
+        return "<p>Category create</p>", 200
+    except ValidationError as err:
+        return f"<p>{err}]</p>", 422
+    except Exception as err:
+        db.session.rollback()
+        return f"<p>{err}</p>", 422
 
 @app.route("/category/<int:Id>", methods=["DELETE"])
 def delete_category(Id):
-    if categorys.get(Id-1) is None:
-        return "<p>Category not found</p>", 404
-    del categorys[Id-1]
-    return "<p>Category delete</p>", 200
+    try:
+        category = CategotyModel.query.get(Id-1)
+        if category is None:
+            return "<p>Category not found</p>", 404
+        db.session.delete(category)
+        db.session.commit()
+        return "<p>Category delete</p>", 200
+    except Exception as err:
+        db.session.rollback()
+        return f"<p>{err}</p>", 422
 
 #Record request
 @app.route("/records", methods=["GET"])
 def get_records():
-    return jsonify(records), 200
+    try:
+        records = RecordModel.query.all()
+        return jsonify([record.to_dict() for record in records]), 200
+    except Exception as err:
+        db.session.rollback()
+        return f"<p>{err}</p>", 422
 
 @app.route("/record/<int:Id>", methods=["GET"])
 def get_record(Id):
-    if records.get(Id-1) is None:
-        return "<p>Record not found</p>", 404
-    return jsonify(records.get(Id-1)), 200
+    try:
+        record = RecordModel.query.get(Id-1)
+        if record is None:
+            return "<p>Record not found</p>", 404
+        return jsonify(record), 200
+    except Exception as err:
+        db.session.rollback()
+        return f"<p>{err}</p>", 422
 
 @app.route("/record", methods=["POST"])
 def create_record():
-    global record_id
-    global user_id
-    global category_id
-    new_record = Record(record_id, user_id-1, category_id-1, datetime.now().isoformat(), random.randint(1, 50))
-    records[record_id-1] = new_record.to_dict()
-    record_id += 1
-    return "<p>Record create</p>", 200
+    try:
+        global record_id
+        global user_id
+        global category_id
+        new_record = Record(record_id, user_id-1, category_id-1, datetime.now().isoformat(), random.randint(1, 100)).to_dict()
+        new_record = record_schema.load(new_record)
+        new_record = RecordModel(new_record)
+        db.session.add(new_record)
+        db.session.commit()
+        record_id += 1
+        return "<p>Record create</p>", 200
+    except ValidationError as err:
+        return f"<p>{err}]</p>", 422
+    except Exception as err:
+        db.session.rollback()
+        return f"<p>{err}</p>", 422
 
 @app.route("/record/<int:Id>", methods=["DELETE"])
 def delete_record(Id):
-    if records.get(Id-1) is None:
-        return "<p>Record not found</p>", 404
-    del records[Id-1]
-    return "<p>Record delete</p>", 200
+    try:
+        record = RecordModel.query.get(Id-1)
+        if record is None:
+            return "<p>Category not found</p>", 404
+        db.session.delete(record)
+        db.session.commit()
+        return "<p>Record delete</p>", 200
+    except Exception as err:
+        db.session.rollback()
+        return f"<p>{err}</p>", 422
 
 @app.route("/record/<path:params>", methods=["GET"])
 def show_record(params):
-    if len(params.split("-")) != 2:
-        return "<p>Parameters is not two</p>", 404
+    try:
+        if len(params.split("-")) != 2:
+            return "<p>Parameters is not two</p>", 404
 
-    user_id, category_id = params.split('-')
+        user_id, category_id = params.split('-')
 
-    if not user_id or not category_id:
-        return "<p>Parameters have not</p>", 404
+        if not user_id or not category_id:
+            return "<p>Parameters have not</p>", 404
 
-    if not user_id.isdigit() or not category_id.isdigit():
-        return "<p>Parameters must be numbers</p>", 404
+        if not user_id.isdigit() or not category_id.isdigit():
+            return "<p>Parameters must be numbers</p>", 404
 
-    user_id = int(user_id)
-    category_id = int(category_id)
+        user_id = int(user_id)
+        category_id = int(category_id)
 
-    global record_id
-    results = {}
-    result_id = 0
+        results = RecordModel.query.filter(
+            (RecordModel.User_id == user_id) | (RecordModel.Category_id == category_id)
+        ).all()
 
-    for record_id, record in records.items():
-        if (record['User_id'] == user_id) or (record['Category_id'] == category_id):
-            results[result_id] = {
-                "Id": record['Id'],
-                "User_id": record['User_id'],
-                "Category_id": record['Category_id'],
-                "Time": record['Time'],
-                "Pay": record['Pay']
-            }
-            result_id += 1
-
-    if not results:
-        return "<p>Record not found</p>", 404
+        if not results:
+            return "<p>Record not found</p>", 404
     
-    return jsonify(results), 200
+        results = [record.to_dict() for record in results]
+
+        return jsonify(results), 200
+    except Exception as err:
+        db.session.rollback()
+        return f"<p>{err}</p>", 422
