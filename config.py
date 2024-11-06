@@ -2,7 +2,7 @@ import os
 
 PROPAGATE_EXCEPTIONS = True
 FLASK_DEBUG = True
-SQLALCHEMY_DATABASE_URI = f'postgresql://{os.environ["POSTGRES_USER"]}:{os.environ["POSTGRES_PASSWORD"]}@{os.environ["POSTGRES_HOST"]}/{os.environ["POSTGRES_DB"]}'
+SQLALCHEMY_DATABASE_URI = f'postgresql://{os.environ.get("POSTGRES_USER")}:{os.environ.get("POSTGRES_PASSWORD")}@{os.environ.get("POSTGRES_HOST")}/{os.environ.get("POSTGRES_DB")}'
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 API_TITLE = "Lab3"
 API_VERSION = "v2"
