@@ -1,12 +1,22 @@
 from . import db
 
+class PocketModel(db.Model):
+    __tablename__ = "pocket"
+
+    Id = db.Column(db.Integer, primary_key = True)
+    Money = db.Column(db.Integer)
+
+    user = db.relationship("UserModel", back_populates="pocket", lazy="dynamic")
+
 class UserModel(db.Model):
     __tablename__ = "user"
 
     Id = db.Column(db.Integer, primary_key = True)
+    Pocket_id = db.Column(db.Integer, db.ForeignKey("pocket.Id"), nullable=False)
     Name = db.Column(db.String(128), unique=True, nullable=False)
 
     record = db.relationship("RecordModel", back_populates="user", lazy="dynamic")
+    pocket = db.relationship("PocketModel", back_populates="user")
 
 class CategoryModel(db.Model):
     __tablename__ = "category"

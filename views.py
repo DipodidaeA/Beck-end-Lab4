@@ -10,13 +10,14 @@ names = {"Alan", "Bob", "Rufus", "Blayd"}
 names_category = {"food", "car", "ticket", "water"}
 
 user_id = 1
-user_schema = PlainUserSchema()
+user_schema = UserSchema()
+pocket_schema = PocketSchema() 
 
 category_id = 1
-category_schema = PlainCategorySchema()
+category_schema = CategorySchema()
 
 record_id = 1
-record_schema = PlainRecordSchema()
+record_schema = RecordSchema()
 
 @app.route("/", methods=["GET"])
 def healthcheck():
@@ -45,12 +46,24 @@ def create_user():
     try:
         global user_id
         global names
+        new_pocket = pocket_schema.load({
+                'Id': user_id,
+                'Money': random.randint(1, 100)
+            })
+        new_pocket = PocketModel(
+                Id=new_pocket["Id"],
+                Money=new_pocket["Money"]
+            )
+        db.session.add(new_pocket)
+        db.session.commit()
         new_user = user_schema.load({
-                'Id': user_id, 
+                'Id': user_id,
+                'Pocket_id': user_id, 
                 'Name': random.choice(list(names))
             })
         new_user = UserModel(
                 Id=new_user["Id"],
+                Pocket_id = new_user["Pocket_id"],
                 Name=new_user["Name"]
             )
         db.session.add(new_user)
@@ -69,7 +82,9 @@ def delete_user(Id):
         user = UserModel.query.get(Id)
         if user is None:
             return "User not found", 404
+        pocket = PocketModel.query.get(Id)
         db.session.delete(user)
+        db.session.delete(pocket)
         db.session.commit()
         return "User delete", 200
     except Exception as err:
@@ -89,6 +104,68 @@ def show_user():
                 }
             index +=1
         return Response(json.dumps(users_dict, indent=4), mimetype='application/json'), 200
+    except Exception as err:
+        db.session.rollback()
+        return f"{err}", 422
+
+# Pocket request
+@app.route("/user/pocket", methods=["GET"])
+def show_pocket():
+    try:
+        poskets = PocketModel.query.all()
+        posket_dict = {}
+        index = 0
+        for posket in poskets:
+            posket_dict[index] = {
+                    'Id': posket.Id,
+                    'Money': posket.Money,
+                }
+            index +=1
+        return Response(json.dumps(posket_dict, indent=4), mimetype='application/json'), 200
+    except Exception as err:
+        db.session.rollback()
+        return f"{err}", 422
+
+@app.route("/user/pocket/<int:Id>", methods=["GET"])
+def get_pocket(Id):
+    try:
+        user = UserModel.query.get(Id)
+        if user is None:
+            return "User not found. Pocket have not", 404 
+        pocket = PocketModel.query.get(Id)
+        return Response(json.dumps({
+                'Id': pocket.Id,
+                'Name': pocket.Money
+            }, indent=4), mimetype='application/json'), 200
+    except Exception as err:
+        db.session.rollback()
+        return f"{err}", 422
+
+@app.route("/user/pocket/salary/<path:params>", methods=["POST"])
+def salary(params):
+    try:
+        if len(params.split("-")) != 2:
+            return "Parameters is not two", 404
+
+        user_id, salary = params.split('-')
+
+        if not user_id or not salary:
+            return "Parameters have not", 404
+
+        if not user_id.isdigit() or not salary.isdigit():
+            return "Parameters must be numbers", 404
+
+        user_id = int(user_id)
+        user = UserModel.query.get(user_id)
+        if user is None:
+            return "User not found. Salary impossible", 404
+        salary = int(salary)
+
+        pocket = PocketModel.query.get(user_id)
+        pocket.Money += salary
+        db.session.commit()
+        return "Salary finished", 200
+        
     except Exception as err:
         db.session.rollback()
         return f"{err}", 422
@@ -209,12 +286,15 @@ def create_record(params):
             return "<Сategory not found. Record not create", 404
 
         global record_id
+        pay = random.randint(1, 100)
+        pocket = PocketModel.query.get(user_id)
+        pocket.Money -= pay
         new_record = record_schema.load({
                 "Id": record_id,
                 "User_id": user_id,
                 "Category_id": category_id,
                 "Time": datetime.now().isoformat(),
-                "Pay": random.randint(1, 100),
+                "Pay": pay,
             })
         new_record = RecordModel(
                 Id=new_record["Id"],
