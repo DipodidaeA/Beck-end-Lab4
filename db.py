@@ -1,11 +1,4 @@
-from . import app
-from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()
-
-app.config.from_pyfile('config.py', silent=True)
-
-db.init_app(app)
+from . import db
 
 class UserModel(db.Model):
     __tablename__ = "user"
@@ -15,7 +8,7 @@ class UserModel(db.Model):
 
     record = db.relationship("RecordModel", back_populates="user", lazy="dynamic")
 
-class CategotyModel(db.Model):
+class CategoryModel(db.Model):
     __tablename__ = "category"
 
     Id = db.Column(db.Integer, primary_key = True)
@@ -27,8 +20,8 @@ class RecordModel(db.Model):
     __tablename__ = "record"
 
     Id = db.Column(db.Integer, primary_key = True)
-    User_id = db.Column(db.Integer, db.ForeingKey("user.Id"), unique=False, nullable=False)
-    Category_id = db.Column(db.Integer, db.ForeingKey("category.Id"), unique=False, nullable=False)
+    User_id = db.Column(db.Integer, db.ForeignKey("user.Id"), nullable=False)
+    Category_id = db.Column(db.Integer, db.ForeignKey("category.Id"), nullable=False)
     Time = db.Column(db.String, nullable=False)
     Pay = db.Column(db.Integer, nullable=False)
 

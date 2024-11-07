@@ -1,9 +1,16 @@
 from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+
+db = SQLAlchemy()
+migrate = Migrate()
 
 app = Flask(__name__)
 
-from .views import *
-from .db import db
+app.config.from_pyfile('config.py', silent=True)
 
-migrate = Migrate(app, db)
+db.init_app(app)
+
+migrate.init_app(app, db)
+
+from .views import *

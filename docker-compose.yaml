@@ -4,15 +4,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: lab2:v-1
+    image: lab3:v-1
     environment:
-      PORT: "5002"
+      PORT: "5003"
       POSTGRES_USER: "user"
       POSTGRES_PASSWORD: "12345"
       POSTGRES_DB: "Lab3"
       POSTGRES_HOST: "db"
     ports:
-      - "5002:5002"
+      - "5003:5003"
     depends_on:
       - db
   db:
@@ -21,5 +21,9 @@ services:
       POSTGRES_USER: "user"
       POSTGRES_PASSWORD: "12345"
       POSTGRES_DB: "Lab3"
+      POSTGRES_HOST: "db"
     volumes:
       - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:

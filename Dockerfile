@@ -13,4 +13,10 @@ RUN python -m pip install -r requirements.txt
 COPY . /app
 
 
-CMD flask --app __init__ run -h 0.0.0.0 -p 5001
+ENV FLASK_APP=__init__.py
+
+
+RUN flask db init
+
+
+CMD flask db migrate && flask db upgrade && flask --app __init__ run -h 0.0.0.0 -p 5003
