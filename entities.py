@@ -8,6 +8,7 @@ class UserSchema(Schema):
     Id = fields.Int(required=True)
     Pocket_id = fields.Int(required=True)
     Name = fields.Str(required=True)
+    Password = fields.Str(required=True)
 
 class CategorySchema(Schema):
     Id = fields.Int(required=True)

@@ -14,6 +14,7 @@ class UserModel(db.Model):
     Id = db.Column(db.Integer, primary_key = True)
     Pocket_id = db.Column(db.Integer, db.ForeignKey("pocket.Id"), nullable=False)
     Name = db.Column(db.String(128), unique=True, nullable=False)
+    Password = db.Column(db.String)
 
     record = db.relationship("RecordModel", back_populates="user", lazy="dynamic")
     pocket = db.relationship("PocketModel", back_populates="user")

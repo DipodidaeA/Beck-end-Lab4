@@ -2,11 +2,13 @@ from flask import Response, json, jsonify
 from datetime import datetime
 import random
 from marshmallow import ValidationError
+from passlib.hash import pbkdf2_sha256
+from flask_jwt_extended import create_access_token
+from flask_jwt_extended import jwt_required
 from .db import *
 from .entities import *
 from . import app
 
-names = {"Alan", "Bob", "Rufus", "Blayd"}
 names_category = {"food", "car", "ticket", "water"}
 
 user_id = 1
@@ -28,6 +30,7 @@ def healthcheck():
 
 # User request
 @app.route("/user/<int:Id>", methods=["GET"])
+@jwt_required()
 def get_user(Id):
     try:
         user = UserModel.query.get(Id)
@@ -41,11 +44,25 @@ def get_user(Id):
         db.session.rollback()
         return f"{err}", 422
 
-@app.route("/user", methods=["POST"])
-def create_user():
+@app.route("/user/register/<path:params>", methods=["POST"])
+def create_user(params):
     try:
         global user_id
-        global names
+        if len(params.split("-")) != 2:
+            return "Parameters is not two", 404
+
+        name, password = params.split('-')
+
+        if not name or not password:
+            return "Parameters have not", 404
+        
+        if not password.isdigit():
+            return "Password have char"
+        
+        user_unique = UserModel.query.filter_by(Name=name).first()
+        if user_unique:
+            return "Incorrect Name"
+        
         new_pocket = pocket_schema.load({
                 'Id': user_id,
                 'Money': random.randint(1, 100)
@@ -59,12 +76,14 @@ def create_user():
         new_user = user_schema.load({
                 'Id': user_id,
                 'Pocket_id': user_id, 
-                'Name': random.choice(list(names))
+                'Name': name,
+                'Password': pbkdf2_sha256.hash(password)
             })
         new_user = UserModel(
                 Id=new_user["Id"],
                 Pocket_id = new_user["Pocket_id"],
-                Name=new_user["Name"]
+                Name=new_user["Name"],
+                Password = new_user["Password"]
             )
         db.session.add(new_user)
         db.session.commit()
@@ -75,8 +94,36 @@ def create_user():
     except Exception as err:
         db.session.rollback()
         return f"{err}", 422
+    
+@app.route("/user/login/<path:params>", methods=["POST"])
+def login_user(params):
+    try:
+        if len(params.split("-")) != 2:
+            return "Parameters is not two", 404
+
+        name, password = params.split('-')
+
+        if not name or not password:
+            return "Parameters have not", 404
+        
+        if not password.isdigit():
+            return "Password have char"
+        
+        user = UserModel.query.filter_by(Name=name).first()
+
+        if not user or not pbkdf2_sha256.verify(password, user.Password):
+            return "Incorrect Name or Password"
+        
+        access_token = create_access_token(identity=str(user.Id))
+
+        return jsonify({"access_token": access_token}), 200
+
+    except Exception as err:
+        db.session.rollback()
+        return f"{err}", 422
 
 @app.route("/user/<int:Id>", methods=["DELETE"])
+@jwt_required()
 def delete_user(Id):
     try:
         user = UserModel.query.get(Id)
@@ -92,6 +139,7 @@ def delete_user(Id):
         return f"{err}", 422
 
 @app.route("/users", methods=["GET"])
+@jwt_required()
 def show_user():
     try:
         users = UserModel.query.all()
@@ -110,6 +158,7 @@ def show_user():
 
 # Pocket request
 @app.route("/user/pocket", methods=["GET"])
+@jwt_required()
 def show_pocket():
     try:
         poskets = PocketModel.query.all()
@@ -127,6 +176,7 @@ def show_pocket():
         return f"{err}", 422
 
 @app.route("/user/pocket/<int:Id>", methods=["GET"])
+@jwt_required()
 def get_pocket(Id):
     try:
         user = UserModel.query.get(Id)
@@ -142,6 +192,7 @@ def get_pocket(Id):
         return f"{err}", 422
 
 @app.route("/user/pocket/salary/<path:params>", methods=["POST"])
+@jwt_required()
 def salary(params):
     try:
         if len(params.split("-")) != 2:
@@ -172,6 +223,7 @@ def salary(params):
 
 # Category request
 @app.route("/category", methods=["GET"])
+@jwt_required()
 def get_category():
     try:
         categorys = CategoryModel.query.all()
@@ -189,6 +241,7 @@ def get_category():
         return f"{err}", 422
 
 @app.route("/category", methods=["POST"])
+@jwt_required()
 def create_category():
     try:
         global category_id
@@ -212,6 +265,7 @@ def create_category():
         return f"{err}", 422
 
 @app.route("/category/<int:Id>", methods=["DELETE"])
+@jwt_required()
 def delete_category(Id):
     try:
         category = CategoryModel.query.get(Id)
@@ -226,6 +280,7 @@ def delete_category(Id):
 
 #Record request
 @app.route("/records", methods=["GET"])
+@jwt_required()
 def get_records():
     try:
         records = RecordModel.query.all()
@@ -246,6 +301,7 @@ def get_records():
         return f"{err}", 422
 
 @app.route("/record/<int:Id>", methods=["GET"])
+@jwt_required()
 def get_record(Id):
     try:
         record = RecordModel.query.get(Id)
@@ -263,6 +319,7 @@ def get_record(Id):
         return f"{err}", 422
 
 @app.route("/record/<path:params>", methods=["POST"])
+@jwt_required()
 def create_record(params):
     try:
         if len(params.split("-")) != 2:
@@ -314,6 +371,7 @@ def create_record(params):
         return f"{err}", 422
 
 @app.route("/record/<int:Id>", methods=["DELETE"])
+@jwt_required()
 def delete_record(Id):
     try:
         record = RecordModel.query.get(Id)
@@ -327,6 +385,7 @@ def delete_record(Id):
         return f"{err}", 422
 
 @app.route("/record/<path:params>", methods=["GET"])
+@jwt_required()
 def show_record(params):
     try:
         if len(params.split("-")) != 2:

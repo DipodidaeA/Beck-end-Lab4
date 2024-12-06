@@ -11,6 +11,7 @@ services:
       POSTGRES_PASSWORD: "12345"
       POSTGRES_DB: "Lab3"
       POSTGRES_HOST: "db"
+      JWT_SECRET_KEY: "Jg5Dl2yBdU8GIbcsH1JRDw=="
     ports:
       - "5003:5003"
     depends_on:
@@ -22,6 +23,7 @@ services:
       POSTGRES_PASSWORD: "12345"
       POSTGRES_DB: "Lab3"
       POSTGRES_HOST: "db"
+      JWT_SECRET_KEY: "Jg5Dl2yBdU8GIbcsH1JRDw=="
     volumes:
       - db_data:/var/lib/postgresql/data
 
